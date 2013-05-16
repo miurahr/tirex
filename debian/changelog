@@ -1,3 +1,29 @@
+tirex (0.4.1ppa4) precise; urgency=low
+
+  * Update backend-mapnik Makefile fix
+    now use pkg-config
+
+ -- Hiroshi Miura <miurahr@linux.com>  Thu, 11 Apr 2013 08:28:40 +0900
+
+tirex (0.4.1ppa3) precise; urgency=low
+
+  * Fix backend-mapnik compile error 
+
+ -- Hiroshi Miura <miurahr@linux.com>  Thu, 11 Apr 2013 08:12:09 +0900
+
+tirex (0.4.1ppa2) precise; urgency=low
+
+  * Add missing dependency to build cleanly
+    - libmapnik-dev
+
+ -- Hiroshi Miura <miurahr@linux.com>  Thu, 11 Apr 2013 06:37:45 +0900
+
+tirex (0.4.1ppa1) precise; urgency=low
+
+  * add to private ppa 
+
+ -- Hiroshi Miura <miurahr@linux.com>  Wed, 10 Apr 2013 23:42:11 +0900
+
 tirex (0.4.1precise1) precise; urgency=low
 
   * support (alomst) arbitrary sized meta tiles

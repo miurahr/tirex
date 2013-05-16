@@ -1,5 +1,6 @@
 INSTALLOPTS=-g root -o root
 CFLAGS +=   -Wall -Wextra -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS += `pkg-config --cflags sigc++-2.0`
 CXXFLAGS = $(CFLAGS) `mapnik-config --cflags`
 LDFLAGS= `mapnik-config --libs --ldflags --dep-libs` 
 

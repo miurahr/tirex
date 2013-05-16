@@ -2,7 +2,7 @@ Source: tirex
 Section: web
 Priority: extra
 Maintainer: Frederik Ramm <frederik.ramm@geofabrik.de>
-Build-Depends: debhelper (>= 7), libboost-program-options-dev
+Build-Depends: debhelper (>= 7), libboost-program-options-dev, libmapnik-dev(>= 2.1.0)
 Homepage: http://wiki.openstreetmap.org/wiki/Tirex
 Standards-Version: 3.8.0
 
@@ -47,7 +47,7 @@ Description: Mapserver backend for the Tirex tile rendering system
 
 Package: tirex-backend-mapnik
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, tirex-core
+Depends: ${shlibs:Depends}, ${misc:Depends}, tirex-core, libmapnik(>= 2.1.0)
 Description: Mapnik backend for the Tirex tile rendering system
  The Tirex suite of programs manages map tile rendering and caching.
  This is the Mapnik backend for creating maps with the Mapnik renderer.
