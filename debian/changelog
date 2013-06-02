@@ -1,3 +1,10 @@
+tirex (0.4.1ppa5) precise; urgency=low
+
+  * Fix socket problem.
+    https://github.com/miurahr/tirex/pull/1
+
+ -- Hiroshi Miura <miurahr@linux.com>  Sun, 02 Jun 2013 10:45:45 +0900
+
 tirex (0.4.1ppa4) precise; urgency=low
 
   * Update backend-mapnik Makefile fix
