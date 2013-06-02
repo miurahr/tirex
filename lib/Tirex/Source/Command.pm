@@ -53,9 +53,8 @@ sub readable
     my $sock = shift;
 
     my $buf;
-    # recv() don't return peer so need to get obviously
-    $sock->recv($buf, $Tirex::MAX_PACKET_SIZE);
-    $self->{'peer'} = $sock->peerpath();
+    my $peer = $sock->recv($buf, $Tirex::MAX_PACKET_SIZE);
+    $self->{'peer'} = $peer;
     my $args = Tirex::parse_msg($buf);
 
     foreach (keys %$args) { $self->{$_} = $args->{$_}; };
