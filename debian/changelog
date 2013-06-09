@@ -1,4 +1,4 @@
-tirex (0.4.1ppa6) UNRELEASED; urgency=low
+tirex (0.4.1ppa6) precise; urgency=low
 
   * add Mapnik version to debian control.
 
