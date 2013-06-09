@@ -1,3 +1,9 @@
+tirex (0.4.1ppa6) UNRELEASED; urgency=low
+
+  * add Mapnik version to debian control.
+
+ -- Hiroshi Miura <miurahr@linux.com>  Mon, 10 Jun 2013 07:50:59 +0900
+
 tirex (0.4.1ppa5) precise; urgency=low
 
   * Fix socket problem.
