@@ -1,3 +1,15 @@
+tirex (0.4.1ppa8) UNRELEASED; urgency=low
+
+  * fix version restriction for mapnik
+
+ -- Hiroshi Miura <miurahr@linux.com>  Tue, 18 Jun 2013 07:41:13 +0900
+
+tirex (0.4.1ppa7) precise; urgency=low
+
+  * depend on Mapnik 2.2.0
+
+ -- Hiroshi Miura <miurahr@linux.com>  Mon, 10 Jun 2013 22:41:18 +0900
+
 tirex (0.4.1ppa6) precise; urgency=low
 
   * add Mapnik version to debian control.
