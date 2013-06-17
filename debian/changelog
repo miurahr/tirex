@@ -1,4 +1,4 @@
-tirex (0.4.1ppa8) UNRELEASED; urgency=low
+tirex (0.4.1ppa8) precise; urgency=low
 
   * fix version restriction for mapnik
 
