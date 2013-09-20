@@ -1,8 +1,10 @@
 tirex (0.4.1tileman1) precise; urgency=low
 
-  * change postfix higher than 'precise'.
+  * change a postfix of release higher than 'precise' to avoid 
+    dependency problem with other ppa.
+  * update to latest svn revision. 
 
- -- Hiroshi Miura <miurahr@linux.com>  Sun, 21 Jul 2013 21:12:43 +0900
+ -- Hiroshi Miura <miurahr@linux.com>  Fri, 20 Sep 2013 09:18:55 +0900
 
 tirex (0.4.1ppa8) precise; urgency=low
 
