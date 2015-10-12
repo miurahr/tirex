@@ -1,3 +1,9 @@
+tirex (0.4.2tileman1) trusty; urgency=medium
+
+  * Update tirex from upstream
+
+ -- Hiroshi Miura <miurahr@linux.com>  Mon, 12 Oct 2015 16:29:21 +0900
+
 tirex (0.4.1tileman2) trusty; urgency=medium
 
   * Rebased on Trusty.
