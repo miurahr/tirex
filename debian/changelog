@@ -1,3 +1,9 @@
+tirex (0.4.1tileman2) trusty; urgency=medium
+
+  * Rebased on Trusty.
+
+ -- Hiroshi Miura <miurahr@linux.com>  Mon, 12 Oct 2015 16:16:05 +0900
+
 tirex (0.4.1tileman1) precise; urgency=low
 
   * change a postfix of release higher than 'precise' to avoid 
