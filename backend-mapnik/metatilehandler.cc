@@ -27,17 +27,23 @@
 #include <mapnik/load_map.hpp>
 #include <mapnik/box2d.hpp>
 
+#if MAPNIK_VERSION >= 300000
+# include <mapnik/datasource.hpp>
+# include <mapnik/projection.hpp>
+#endif
+
 #define MERCATOR_WIDTH 40075016.685578488
 #define MERCATOR_OFFSET 20037508.342789244
 
-MetatileHandler::MetatileHandler(const std::string& tiledir, const std::string& stylefile, unsigned int tilesize, double scalefactor, unsigned int mtrowcol)
+MetatileHandler::MetatileHandler(const std::string& tiledir, const std::string& stylefile, unsigned int tilesize, double scalefactor, int buffersize, unsigned int mtrowcol) :
+    mTileWidth(tilesize),
+    mTileHeight(tilesize),
+    mMetaTileRows(mtrowcol),
+    mMetaTileColumns(mtrowcol),
+    mBufferSize(buffersize),
+    mScaleFactor(scalefactor),
+    mTileDir(tiledir)
 {
-    mTileDir = tiledir;
-    mTileWidth = tilesize;
-    mTileHeight = tilesize;
-    mMetaTileRows = mtrowcol;
-    mMetaTileColumns = mtrowcol;
-    mScaleFactor = scalefactor;
     load_map(mMap, stylefile);
 
     fourpow[0] = 1;
@@ -53,10 +59,10 @@ MetatileHandler::~MetatileHandler()
 {
 }
 
-const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *request) 
+const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *request)
 {
     debug(">> MetatileHandler::handleRequest");
-    struct timeval start, end;
+    timeval start, end;
     gettimeofday(&start, NULL);
 
     int x = request->getParam("x", -1);
@@ -91,9 +97,10 @@ const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *requ
     rr.north = (twopow[z] - y) * MERCATOR_WIDTH / twopow[z] - MERCATOR_OFFSET;
     rr.south = (twopow[z] - y - mtr) * MERCATOR_WIDTH / twopow[z] - MERCATOR_OFFSET;
     rr.scale_factor = mScaleFactor;
+    rr.buffer_size = mBufferSize;
 
     // we specify the bbox in epsg:3857, and we also want our image returned
-    // in this projection. 
+    // in this projection.
     rr.bbox_srs = 3857;
     rr.srs = 3857;
 
@@ -114,11 +121,12 @@ const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *requ
     }
     else
     {
-        struct meta_layout m;
-        struct entry offsets[mMetaTileRows * mMetaTileColumns];
-        std::string rawpng[mMetaTileRows * mMetaTileColumns];
+        meta_layout m;
+        int numtiles = mMetaTileRows * mMetaTileColumns;
+        entry *offsets = static_cast<entry *>(malloc(sizeof(entry) * numtiles));
+        std::vector<std::string> rawpng(numtiles);
         memset(&m, 0, sizeof(m));
-        memset(&offsets, 0, sizeof(offsets));
+        memset(&offsets, 0, numtiles * sizeof(entry));
 
         // it seems that mod_tile expects us to always put the theoretical
         // number of tiles in this meta tile, not the real number (in standard
@@ -129,7 +137,7 @@ const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *requ
         m.x = x;
         m.y = y;
         m.z = z;
-        size_t offset = sizeof(m) + sizeof(offsets);
+        size_t offset = sizeof(m) + numtiles * sizeof(entry);
         int index = 0;
 
         char metafilename[PATH_MAX];
@@ -142,7 +150,7 @@ const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *requ
         char tmpfilename[PATH_MAX];
         snprintf(tmpfilename, PATH_MAX, "%s.%d.tmp", metafilename, getpid());
         std::ofstream outfile(tmpfilename, std::ios::out | std::ios::binary | std::ios::trunc);
-        outfile.write((const char*) &m, sizeof(m));
+        outfile.write(reinterpret_cast<const char*>(&m), sizeof(m));
 
         for (unsigned int col = 0; col < mMetaTileColumns; col++)
         {
@@ -150,7 +158,7 @@ const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *requ
             {
                 if ((col < mtc) && (row < mtr))
                 {
-                    mapnik::image_view<mapnik::image_data_32> view(col * mTileWidth, 
+                    mapnik::image_view<mapnik::image_data_32> view(col * mTileWidth,
                         row * mTileHeight, mTileWidth, mTileHeight, rrs->image->data());
                     rawpng[index] = mapnik::save_to_string(view, "png256");
                     offsets[index].offset = offset;
@@ -165,7 +173,7 @@ const NetworkResponse *MetatileHandler::handleRequest(const NetworkRequest *requ
             }
         }
 
-        outfile.write((const char*) &offsets, sizeof(offsets));
+        outfile.write(reinterpret_cast<const char*>(offsets), numtiles * sizeof(entry));
 
         for (int i=0; i < index; i++)
         {
@@ -229,7 +237,7 @@ bool MetatileHandler::mkdirp(const char *tile_dir, int x, int y, int z) const
     return true;
 }
 
-const RenderResponse *MetatileHandler::render(const RenderRequest *rr) 
+const RenderResponse *MetatileHandler::render(const RenderRequest *rr)
 {
     debug(">> MetatileHandler::render");
     char init[255];
@@ -266,8 +274,14 @@ const RenderResponse *MetatileHandler::render(const RenderRequest *rr)
     mapnik::box2d<double> bbox(west, south, east, north);
     mMap.resize(rr->width, rr->height);
     mMap.zoom_to_box(bbox);
-    if(mMap.buffer_size() < 128)
+    if (rr->buffer_size > -1)
+    {
+        mMap.set_buffer_size(rr->buffer_size);
+    }
+    else if (mMap.buffer_size() < 128)
+    {
         mMap.set_buffer_size(128);
+    }
 
     debug("width: %d, height:%d", rr->width, rr->height);
     RenderResponse *resp = new RenderResponse();
@@ -277,7 +291,7 @@ const RenderResponse *MetatileHandler::render(const RenderRequest *rr)
     {
         renderer.apply();
     }
-    catch (mapnik::datasource_exception dex)
+    catch (mapnik::datasource_exception const& dex)
     {
         delete resp;
         resp = NULL;

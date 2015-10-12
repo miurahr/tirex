@@ -38,6 +38,11 @@ if [ -z "$ENABLED" ]; then
     ENABLED="false"
 fi
 
+# tirex priority
+if [ -z "$PRIORITY" ]; then
+    PRIORITY=20
+fi
+
 # join data from all maps instead of handling them individual
 if [ -z "$JOIN" ]; then
     JOIN="true"
@@ -49,6 +54,9 @@ if [ -z "$STOPRENDERING" ]; then
 fi
 
 #-----------------------------------------------------------------------------
+
+# be portable (see: https://www.gnu.org/software/coreutils/faq/coreutils-faq.html#Sort-does-not-sort-in-normal-order_0021)
+LC_ALL=C ; export LC_ALL
 
 # append output to logfile
 exec >>/var/log/tirex/tirex-create-stats-and-update-tiles.log 2>&1
@@ -100,7 +108,7 @@ for MAP in $MAPS; do
 
         # ...and add them to tirex queue
         if [ $ENABLED != "false" ]; then
-            tirex-batch --prio=20 <$DIR/tiles-$DATE-$MAP.oldest
+            tirex-batch --prio=$PRIORITY <$DIR/tiles-$DATE-$MAP.oldest
         fi
     fi
 done
@@ -108,7 +116,7 @@ done
 if [ $JOIN != "false" ]; then
     sort --field-separator=, --numeric-sort --reverse $DIR/tiles-$DATE-ALLMAPS.csv | head -$OLDESTNUM | cut -d, -f4 >$DIR/tiles-$DATE-ALLMAPS.oldest
     if [ $ENABLED != "false" ]; then 
-        tirex-batch --prio=20 <$DIR/tiles-$DATE-ALLMAPS.oldest
+        tirex-batch --prio=$PRIORITY <$DIR/tiles-$DATE-ALLMAPS.oldest
     fi
 fi
 

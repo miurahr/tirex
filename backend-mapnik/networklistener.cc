@@ -24,11 +24,11 @@
 #include "networkresponse.h"
 
 // stuff for handling the hangup signal properly
-extern "C" 
+extern "C"
 {
     static volatile sig_atomic_t gHangupOccurred;
-    static void hangup_signal_handler(int param) { param = param; gHangupOccurred = 1; }
-    static void install_sighup_handler(bool with_restart) 
+    static void hangup_signal_handler(int /*param*/) { gHangupOccurred = 1; }
+    static void install_sighup_handler(bool with_restart)
     {
         struct sigaction action;
         sigemptyset(&action.sa_mask);
@@ -46,12 +46,13 @@ extern "C"
     }
 }
 
-NetworkListener::NetworkListener(int port, int sockfd, int parentfd, std::map<std::string, RequestHandler *> *handlers)
+NetworkListener::NetworkListener(int port, int sockfd, int parentfd, std::map<std::string, RequestHandler *> *handlers) :
+    mpRequestHandlers(handlers),
+    mSocket(-1),
+    mParent(parentfd)
 {
-    mpRequestHandlers = handlers;
-
     socklen_t length;
-    struct sockaddr_in server;
+    sockaddr_in server;
 
     if (sockfd >= 0)
     {
@@ -69,10 +70,9 @@ NetworkListener::NetworkListener(int port, int sockfd, int parentfd, std::map<st
         server.sin_family = AF_INET;
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
         server.sin_port = htons(port);
-        if (bind(mSocket,(struct sockaddr *) &server, length) < 0) die("cannot bind to port %d: %s", port, strerror(errno));
+        if (bind(mSocket, reinterpret_cast<sockaddr *>(&server), length) < 0) die("cannot bind to port %d: %s", port, strerror(errno));
         debug("bound to port %d", port);
     }
-    mParent = parentfd;
 }
 
 NetworkListener::~NetworkListener()
@@ -81,8 +81,8 @@ NetworkListener::~NetworkListener()
 
 void NetworkListener::run()
 {
-    struct sockaddr_in client;
-    socklen_t fromlen = sizeof(struct sockaddr_in);
+    sockaddr_in client;
+    socklen_t fromlen = sizeof(sockaddr_in);
     char buf[MAX_DGRAM];
 
     // install SIGHUP signal handler. use sigaction to avoid restarting after signal.
@@ -93,30 +93,30 @@ void NetworkListener::run()
     time_t last_alive_sent = 0;
     install_sighup_handler(false);
     ignore_sigpipe();
-    while (!gHangupOccurred) 
+    while (!gHangupOccurred)
     {
-        struct timeval to = { 5, 0 };
+        timeval to = { 5, 0 };
         FD_SET(mSocket, &rfds);
         // do not select for writability of mParent, since it is
         // always writable.
         int n = select(mSocket + 1, &rfds, NULL, NULL, &to);
 
         // send alive message to parent.
-        if (mParent > -1) 
+        if (mParent > -1)
         {
             time_t now = time(NULL);
             if (now >= last_alive_sent + 5)
             {
-                // we really are not interested in the write() result since 
+                // we really are not interested in the write() result since
                 // the parent is going to kill us anyway if it does not recieve
-                // an alive message. The following construction gets rid of 
+                // an alive message. The following construction gets rid of
                 // the compiler warning about not using the return value.
-                if (write(mParent, (const void *) "alive", 5)) {};
+                if (write(mParent, static_cast<const void *>("alive"), 5)) {};
                 last_alive_sent = now;
             }
         }
 
-        if (n <= 0) 
+        if (n <= 0)
         {
             if (n < 0 && errno != EINTR)
             {
@@ -130,10 +130,10 @@ void NetworkListener::run()
             continue;
         }
 
-        n = recvfrom(mSocket, buf, MAX_DGRAM, 0, (struct sockaddr *) &client, &fromlen);
-        if (n < 0) 
+        n = recvfrom(mSocket, buf, MAX_DGRAM, MSG_DONTWAIT, reinterpret_cast<sockaddr *>(&client), &fromlen);
+        if (n < 0)
         {
-            if (errno != EINTR)
+            if (errno != EWOULDBLOCK && errno != EAGAIN && errno != EINTR)
             {
                 error("error while reading data: %s", strerror(errno));
                 if (errcnt++ > 10)
@@ -165,7 +165,7 @@ void NetworkListener::run()
                     if (!(resp = h->second->handleRequest(req)))
                     {
                         error("handler returned null");
-                        resp = NetworkResponse::makeErrorResponse(req, 
+                        resp = NetworkResponse::makeErrorResponse(req,
                             "Handler for map '%s' encountered an error", req->getParam("map", "").c_str());
                     }
                 }
@@ -181,7 +181,7 @@ void NetworkListener::run()
             std::string responseString;
             resp->build(responseString);
             debug("sending: %s", responseString.c_str());
-            n = sendto(mSocket, responseString.data(), responseString.length(), 0, (struct sockaddr *)&client, fromlen);
+            n = sendto(mSocket, responseString.data(), responseString.length(), 0, reinterpret_cast<sockaddr *>(&client), fromlen);
             if (n < 0)
             {
                 error("error in sendto");

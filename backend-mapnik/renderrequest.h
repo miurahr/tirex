@@ -17,7 +17,7 @@
 #ifndef renderrequest_included
 #define renderrequest_included
 
-class RenderRequest 
+class RenderRequest
 {
     public:
         unsigned int width;
@@ -27,6 +27,7 @@ class RenderRequest
         double north;
         double south;
         double scale_factor;
+        int buffer_size;
         unsigned int srs;
         unsigned int bbox_srs;
 };

@@ -29,7 +29,7 @@ bool RenderDaemon::loadFonts(const boost::filesystem::path &dir, bool recurse)
         {
             if (!loadFonts(*itr, true)) return false;
         }
-        else 
+        else
         {
 #if (BOOST_FILESYSTEM_VERSION == 3)
             mapnik::freetype_engine::register_font(itr->path().string());
@@ -59,7 +59,8 @@ bool RenderDaemon::loadMapnikWrapper(const char *configfile)
     unsigned int tilesize = 256;
     unsigned int mtrowcol = 8;
     double scalefactor = 1.0;
-    
+    int buffersize = -1;
+
     while (char *line = fgets(linebuf, sizeof(linebuf), f))
     {
         while (isspace(*line)) line++;
@@ -87,6 +88,10 @@ bool RenderDaemon::loadMapnikWrapper(const char *configfile)
             else if (!strcmp(line, "scalefactor"))
             {
                 scalefactor = atof(eq);
+            }
+            else if (!strcmp(line, "buffersize"))
+            {
+                buffersize = atoi(eq);
             }
             else if (!strcmp(line, "tilesize"))
             {
@@ -136,7 +141,7 @@ bool RenderDaemon::loadMapnikWrapper(const char *configfile)
 
     try
     {
-        mHandlerMap[stylename] = new MetatileHandler(tiledir, mapfile, tilesize, scalefactor, mtrowcol);
+        mHandlerMap[stylename] = new MetatileHandler(tiledir, mapfile, tilesize, scalefactor, buffersize, mtrowcol);
         mHandlerMap[stylename]->setStatusReceiver(this);
         debug("added style '%s' from map %s", stylename.c_str(), configfile);
         rv = true;
@@ -149,13 +154,11 @@ bool RenderDaemon::loadMapnikWrapper(const char *configfile)
     return rv;
 }
 
-RenderDaemon::RenderDaemon(int argc, char **argv)
+RenderDaemon::RenderDaemon(int argc, char **argv) :
+    mArgc(argc),
+    mArgv(argv),
+    mProgramName(argc ? argv[0] : "")
 {
-    // store for later use in setProgramName
-    mArgc = argc;
-    mArgv = argv;
-    if (argc) mProgramName.assign(argv[0]);
-
     setStatus("initializing");
 
     char *tmp = getenv("TIREX_BACKEND_DEBUG");
@@ -220,9 +223,9 @@ RenderDaemon::RenderDaemon(int argc, char **argv)
 
 }
 
-RenderDaemon::~RenderDaemon() 
+RenderDaemon::~RenderDaemon()
 {
-};
+}
 
 void RenderDaemon::run()
 {
@@ -233,7 +236,7 @@ void RenderDaemon::run()
 
 void RenderDaemon::setStatus(const char *status)
 {
-#ifdef linux
+#ifdef __linux__
     char **p = mArgv;
     for (int i=1;i<mArgc;i++) { for (char *c = *(++p); *c != 0; c++) *c=0; }
 //    sprintf(*mArgv, "%s: %s", mProgramName.c_str(), status);
